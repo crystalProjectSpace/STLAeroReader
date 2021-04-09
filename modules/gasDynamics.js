@@ -46,11 +46,14 @@ const GasDynamics = {
 	* @return {Object}
 	*/
 	rareify: function(M, Betha, k) {
-		const M_ = 1/(1/M - 0.5 * (k - 1) * Betha)
-		const dT2 = (1/(k - 1) + 0.5 * M * M )/(1/(k - 1) + 0.5 * M_ * M_ )
-		const dP2 = dT2 ** (k/(k - 1))
-		
-		return dP2
+		if(Betha < M / 57.3) {
+			const M_ = 1/(1/M - 0.5 * (k - 1) * Betha) 
+			const dT2 = (1/(k - 1) + 0.5 * M * M )/(1/(k - 1) + 0.5 * M_ * M_ )
+			const dP2 = dT2 ** (k/(k - 1))
+			return dP2
+		} else {
+			return 0
+		}
 	},
 
 
@@ -64,14 +67,14 @@ const GasDynamics = {
 	*/
 	testNewton: function(M, k, Nu) {
 		let ThStart = Nu
-		let delta = deltaTh(M, ThStart, k, Nu)
-		let derivD = (deltaTh(M, ThStart + DTH, k, Nu) - delta)/DTH
+		let delta = GasDynamics.deltaTh(M, ThStart, k, Nu)
+		let derivD = (GasDynamics.deltaTh(M, ThStart + GasDynamics.DTH, k, Nu) - delta)/GasDynamics.DTH
 		let ThNext = ThStart - delta / derivD
 		
 		while(Math.abs(ThNext - ThStart) > 5E-4) {
 			ThStart = ThNext
-			delta = deltaTh(M, ThStart, k, Nu)
-			derivD = (deltaTh(M, ThStart + DTH, k, Nu) - delta)/DTH
+			delta = GasDynamics.deltaTh(M, ThStart, k, Nu)
+			derivD = (GasDynamics.deltaTh(M, ThStart + GasDynamics.DTH, k, Nu) - delta)/GasDynamics.DTH
 			ThNext = ThStart - delta / derivD
 		}
 		
@@ -109,11 +112,15 @@ const GasDynamics = {
 	* @return {Array.<{Th: Number, dP: Number}>} Вектор с углами скачков и коэффициентам роста давления
 	*/
 	getDeltaPressure: function(ThMax, NuMax, Nu, M, k) {
-		if( Nu > 0) {
-			const Th = Nu > NuMax ? overCritTh(ThMax, Nu, NuMax) : testNewton(M, k, Nu)
-			return shockTransform(M, k, Th)
+		if(Math.abs(Nu) > 0.005) {
+			if( Nu > 0) {
+				const Th = Nu > NuMax ? GasDynamics.overCritTh(ThMax, Nu, NuMax) : GasDynamics.testNewton(M, k, Nu)
+				return GasDynamics.shockTransform(M, k, Th)
+			} else {
+				return GasDynamics.rareify(M, -Nu, k)
+			}
 		} else {
-			return rareify(M, -Nu, k)
+			return 1
 		}
 	}
 }

@@ -2,9 +2,7 @@
 
 const fs = require('fs')
 
-const MODES = {
-	READ: 'r'
-}
+const MODES = { READ: 'r' }
 // константы для работы с бинарным STL
 const STL = {
 	HEADER_BYTES: 80,	// стандартный заголовок 80 символов
@@ -19,8 +17,11 @@ const STL = {
 	D_POINT_3: 36		// сдвиг при чтении третьей точки
 }
 
-//Схема работы с STL
-
+/**
+ * @description Преобразовать байт-массив в данные о геометрии
+ * @param {Array.<Uint8>} rawBinary массив байтов бинарного файла 
+ * @returns {{header: String, nTriangles: Number, traingles: Object}} - заголовк прочтенного файла, количество элемнтарных треугольников и массив треугольников
+ */
 function getSTLData(rawBinary) {
 	const triangles = []
 	const header = rawBinary.toString('utf-8', 0, STL.HEADER_BYTES)
@@ -63,8 +64,6 @@ function getSTLData(rawBinary) {
 	}	
 }
 
-const testPath = './test.stl'
-
 /*
 Because ASCII STL files can become very large, a binary version of STL exists. A binary STL file has an 80-character header (which is generally ignored, but should never begin with "solid" because that may lead some software to assume that this is an ASCII STL file). Following the header is a 4-byte little-endian unsigned integer indicating the number of triangular facets in the file. Following that is data describing each triangle in turn. The file simply ends after the last triangle.
 
@@ -83,6 +82,13 @@ Floating-point numbers are represented as IEEE floating-point numbers and are as
 	end
 */
 
+/**
+ * @description получить указатель на файл для дальнейшей обработки
+ * @async
+ * @param {String} path путь к файлу 
+ * @param {String} mode режим работы с файлом
+ * @returns {Promise}
+ */
 const getFileHandler = function(path, mode){
 	return new Promise((resolve, reject) => {
 		fs.open(path, mode, (status, filePtr) => {
@@ -93,39 +99,49 @@ const getFileHandler = function(path, mode){
 	})
 }
 
-const getFileStats = function(path) {
-	return new Promise((resolve, reject) => {
-		fs.stat(path, false, (err, fileStats) => {
-			err ? reject(err) : resolve(fileStats)
+module.exports = {
+	/**
+	 * @description Считать бинарный STL-файл, созданный в Blender, и передать массив треугольников для дальнейшей обработки
+	 * @async
+	 * @param {String} path путь к обрабатываемому STL-файлу 
+	 * @param {Function} geometryConsumer функция - преобразователь геометрии 
+	 * @returns {void} промис, успешно завершаемый передачей данных о геометрии объекта
+	 */
+	readSTL: function(path, geometryConsumer = null) {
+		return new Promise((resolve, reject) => {
+			fs.stat(path, false, (err, fileStats) => {
+				err ? reject(err) : resolve(fileStats)
+			})
 		})
-	})
-	.then( fileStats => {
-		getFileHandler(path, MODES.READ)
-		.then(filePtr => new Promise((resolve, reject) => {
-				const readBuff = Buffer.alloc(fileStats.size)
-				
-				fs.read(filePtr, readBuff, 0, fileStats.size, 0, (err, content) => {
-					err ? reject(err) : resolve(readBuff)
+		.then( fileStats => {
+			getFileHandler(path, MODES.READ)
+			.then(filePtr => new Promise((resolve, reject) => {
+					const readBuff = Buffer.alloc(fileStats.size)
+					
+					fs.read(filePtr, readBuff, 0, fileStats.size, 0, (err, content) => {
+						err ? reject(err) : resolve(readBuff)
+					})
 				})
-			})
-		)
-		.then(binary => {
-			const stl_data = getSTLData(binary)
-			const {triangles} = stl_data
-
-			triangles.forEach(({norm, p1, p2, p3}) => {
-				console.log(norm)
-				console.log(p1)
-				console.log(p2)
-				console.log(p3)
-				console.log('================')
+			)
+			.then(binary => new Promise((resolve, reject) => {
+					const stl_data = getSTLData(binary)
+					const {triangles} = stl_data
+	
+					/*triangles.forEach(({norm, p1, p2, p3}) => {
+						console.log(norm)
+						console.log(p1)
+						console.log(p2)
+						console.log(p3)
+						console.log('================')
+					})*/
+	
+					geometryConsumer(triangles) 
+				})
+			)
+			.catch( err => {
+				console.log('fail:')
+				console.log(err)
 			})
 		})
-		.catch( err => {
-			console.log('fail:')
-			console.log(err)
-		})
-	})
+	}
 }
-
-getFileStats(testPath)

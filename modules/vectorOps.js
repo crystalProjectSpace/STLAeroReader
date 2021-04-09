@@ -97,8 +97,8 @@ const Vector = {
     */
     angleBetween: function(U, V) {
         const cross = Vector.crossProduct(U, V)
-		const sign = Math.sign(Vector.dotProduct([0, 1, 0], cross))
-		return sign * Math.atan(Vector.absV(cross)/Vector.dotProduct(U, V))
+        const sign = Math.sign(Vector.dotProduct([0, 1, 1], cross))
+        return sign * Math.acos(Vector.dotProduct(U, V)/ (Vector.absV(U) * Vector.absV(V)))//Math.atan(Vector.absV(cross)/Vector.dotProduct(U, V))
     },
     /**
     * @description спроецировать точку на плоскость
@@ -221,6 +221,13 @@ const Vector = {
         const p = 0.5 * (AB + BC + AC)
 
         return Math.sqrt(p * (p - AB) * (p - BC) * (p - AC))
+    },
+    triCenter: function(A, B, C) {
+        return [
+            ((A[0] + B[0]) * 0.5 + C[0]) * 0.5,
+            ((A[1] + B[1]) * 0.5 + C[1]) * 0.5,
+            ((A[2] + B[2]) * 0.5 + C[2]) * 0.5, 
+        ]
     }
 }
 

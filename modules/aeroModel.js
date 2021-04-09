@@ -1,4 +1,4 @@
-const GasDynamics = require('./gas_dynamics.js')
+const GasDynamics = require('./gasDynamics.js')
 const Vector = require('./vectorOps.js')
 
 class AeroModel {
@@ -40,29 +40,34 @@ class AeroModel {
         const STB = Math.sin(betha)
 
         const Velocity = [
-            CTA * CTB,
-            STA,
-            CTA * STB
+            -CTA * CTB,
+            -STA,
+            -CTA * STB
         ]
 
-        let adxSumm = [0, 0, 0]
-        let adxCRSumm = [0, 0, 0]
+        const adxSumm = [0, 0, 0]
+        const adxCRSumm = [0, 0, 0]
+        const PI_05 = Math.PI * 0.5
         
         for(let i = 0; i < this.nFacets; i++) {
-            const {norm, point1, point2, point3} = facets[i]
-            const localNu = Math.PI - Vector.angleBetween(Velocity, norm)
-            const localArea = Vector.heronArea(point1, point2, point3)
-            const localCenter = Vector.triCenter(point1, point2, point3)
+            const {norm, p1, p2, p3} = this.facets[i]
+            const localNu0 = Vector.angleBetween(Velocity, norm)
+            const localNu = Math.abs(localNu0) > PI_05 ?
+                -Math.abs(localNu0) + PI_05 :
+                PI_05 - Math.abs(localNu0)
+            
+            const localArea = Vector.heronArea(p1, p2, p3)
+            const localCenter = Vector.triCenter(p1, p2, p3)
             const deltaP = GasDynamics.getDeltaPressure(ThMax, NuMax, localNu, Mach, k)
             const localForce = deltaP * P * localArea
             
-            adxSumm[0] += localForce * norm[0]
-            adxSumm[1] += localForce * norm[1]
-            adxSumm[2] += localForce * norm[2]
+            adxSumm[0] -= localForce * norm[0]
+            adxSumm[1] -= localForce * norm[1]
+            adxSumm[2] -= localForce * norm[2]
 
             adxCRSumm[0] += adxSumm[0] * localCenter[0]
-            adxCRSumm[0] += adxSumm[1] * localCenter[1]
-            adxCRSumm[0] += adxSumm[2] * localCenter[2]
+            adxCRSumm[1] += adxSumm[1] * localCenter[1]
+            adxCRSumm[2] += adxSumm[2] * localCenter[2]
         }
 
         return {
@@ -90,17 +95,17 @@ class AeroModel {
         const nAlpha = AV.length
         const {P, k} = flow
         const result = new Array(nMach)
-        result.forEach(resLine => {resLine = new Array(nAlpha)})
 
         for(let i = 0; i < nMach; i++) {
+            result[i] = []
             const Mach = MV[i]
             const Qpress = 0.5 * k * P * Mach * Mach
             const {NuMax, ThMax} = GasDynamics.getThMax(Mach, k)
             
             for(let j = 0; j < nAlpha; j++) {
                 const alpha = AV[j]
-                const adxMachAlpha = GasDynamics.calcSinglePoint(Qpress, ThMax, NuMax, Mach, flow, alpha, betha)
-                result[i][j] = adxMachAlpha
+                const adxMachAlpha = this.calcSinglePoint(Qpress, ThMax, NuMax, Mach, flow, alpha, betha)
+                result[i].push(adxMachAlpha)
             }
         }
 
