@@ -1,45 +1,84 @@
 'use strict'
 
+const fs = require('fs')
+
 const {readSTL} = require('./modules/stlReader.js')
+
 const AeroModel = require('./modules/aeroModel.js')
 const AtmoModel = require('./modules/atmoModel.js')
+
 const {atmosphere} = require('./atmo/earth_atmo.json')
+const {flight_parameters, vehicle_data} = require("./init_data.json")
 
 const activeAtmo = new AtmoModel()
 activeAtmo.initAtmo(atmosphere)
 
-const calc_data = {
-    area: 7.065,
-    H: 40000,
-    MV: [30],
-    AV: [0, 2/57.3, 5/57.3, 10/ 57.3, 20/57.3, 30/57.3, 45/57.3, 60/57.3]
-}
-
-const processADX = function(geometry) {
-    activeAtmo.setupIndex(calc_data.H)
-    const test_flow = activeAtmo.getAtmo(calc_data.H)
-
-    const model = new AeroModel()
-    const { area, MV, AV } = calc_data
-    model.init(geometry, area)
-    const testADX = model.calcTable(MV, AV, 0, test_flow)
+const prepareADXResult = function(adxTab, MV, AV, vehicle_name, area) {
+    let Cxa_str = ''
+    let Cya_str = ''
 
     const nM = MV.length
     const nA = AV.length
 
     for(let i = 0; i < nM; i++) {
-        let strOutput = ''
         for(let j = 0; j < nA; j++) {
-            const {Cxa, Cya, CxF} = testADX[i][j]
             const CTA = Math.cos(AV[j])
             const STA = Math.sin(AV[j])
-            const CX_a = Cxa * CTA + Cya * STA + CxF
-            const CY_a = -Cxa * STA + Cya * CTA
-            const Ka = CY_a / CX_a
-            strOutput += `cxa: ${CX_a.toFixed(4)}; cya: ${CY_a.toFixed(4)}; Ka: ${Ka.toFixed(4)};\n`
+            const { Cx, Cy, CxF } = adxTab[i][j]
+            const Cxa = Cx * CTA + Cy * STA + CxF
+            const Cya = -Cx * STA + Cy * CTA
+            
+            Cxa_str += `${Cxa.toFixed(4).replace('.', ',')}\t`
+            Cya_str += `${Cya.toFixed(4).replace('.', ',')}\t`
         }
-        console.log(strOutput + '\n======================\n')
+        Cxa_str += '\n'
+        Cya_str += '\n'
     }
+
+    const resultHeader = `Aerodynamic characteristics for ${vehicle_name}\n Calculated for specific area: ${area} m2\n\n\n\n`
+
+    const machPoints = `Mach points\n ${MV.map(Mach => Mach.toFixed(2).replace('.', ',')).join('\t')}\n\n`
+
+    const alphaPoints = `AoA points\n ${AV.map(alpha => (alpha * 57.3).toFixed(2).replace('.', ',')).join('\t')}\n\n\n\n`
+
+    const adxTabs = [
+        'Cxa\n',
+        Cxa_str,
+        '\n\n\n\n',
+        'Cya\n',
+        Cya_str
+    ].join('')
+
+    fs.writeFile(
+        `${vehicle_name}.txt`,
+        (resultHeader + machPoints + alphaPoints + adxTabs),
+        'ascii',
+        function(err) {
+            if(err) {
+                console.log('failed to save result');
+                console.log(err)
+            } else {
+                console.log(`aerodynamic data saved to ${vehicle_name}.txt;\n`)
+            }
+        }
+    )
 }
 
-readSTL('./data/BICONIC_mod_2.stl', processADX)
+const processADX = function(geometry) {
+    const { H, MV, AV } = flight_parameters
+    const {area} = vehicle_data
+
+    activeAtmo.setupIndex(H)
+    const test_flow = activeAtmo.getAtmo(H)
+
+    const model = new AeroModel()
+    
+    model.init(geometry, area)
+    const ADX = model.calcTable(MV, AV, 0, test_flow)
+
+    console.log('aerodinamic data ready to output;\n')
+
+    prepareADXResult(ADX, MV, AV, vehicle_data.vehicle_name, area)
+}
+
+readSTL(`./data/${vehicle_data.vehicle_name}.stl`, processADX)

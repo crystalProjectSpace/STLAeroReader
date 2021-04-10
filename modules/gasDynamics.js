@@ -59,7 +59,7 @@ const GasDynamics = {
 
 	DTH: 0.0004363001745,
 
-	SHOCK_LIMIT: 27.5,
+	SHOCK_LIMIT: 15,
 	/**
 	* @decription Решение уравнения косого скачка уплотнения методом Ньютона
 	* @param {Number} M  число M невозмущенного потока

@@ -61,7 +61,6 @@ class AeroModel {
         ]
 
         const adxSumm = [0, 0, 0]
-        const adxCRSumm = [0, 0, 0]
         const PI_05 = Math.PI * 0.5
         
         for(let i = 0; i < this.nFacets; i++) {
@@ -79,22 +78,15 @@ class AeroModel {
             adxSumm[0] -= localForce * norm[0]
             adxSumm[1] -= localForce * norm[1]
             adxSumm[2] -= localForce * norm[2]
-
-            adxCRSumm[0] += adxSumm[0] * localCenter[0]
-            adxCRSumm[1] += adxSumm[1] * localCenter[1]
-            adxCRSumm[2] += adxSumm[2] * localCenter[2]
         }
 
         return {
             X_force: adxSumm[0], // сопротивление
             Y_force: adxSumm[1], // подъемная сила
             Z_force: adxSumm[2], // боковая сила
-            Cxa: adxSumm[0] / QS, // коэф.сопротивления
-            Cya: adxSumm[1] / QS, // коэф.подъемной силы
-            Cza: adxSumm[2] / QS, // коэф. боковой силы
-            X_f: adxCRSumm[0] / adxSumm[0], // коорд. центра давлений - X
-            X_f: adxCRSumm[1] / adxSumm[1], // коорд. центра давлений - Y
-            X_f: adxCRSumm[2] / adxSumm[2], // коорд. центра давлений - Z
+            Cx: adxSumm[0] / QS, // коэф.сопротивления
+            Cy: adxSumm[1] / QS, // коэф.подъемной силы
+            Cz: adxSumm[2] / QS // коэф. боковой силы
         }        
     }
     /**

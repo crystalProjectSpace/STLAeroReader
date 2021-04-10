@@ -117,27 +117,18 @@ module.exports = {
 			getFileHandler(path, MODES.READ)
 			.then(filePtr => new Promise((resolve, reject) => {
 					const readBuff = Buffer.alloc(fileStats.size)
-					
+					console.log(`\nbinaries acquired, ${fileStats.size} bytes total;\n`)
 					fs.read(filePtr, readBuff, 0, fileStats.size, 0, (err, content) => {
 						err ? reject(err) : resolve(readBuff)
 					})
 				})
 			)
-			.then(binary => new Promise((resolve, reject) => {
+			.then(binary => {
 					const stl_data = getSTLData(binary)
-					const {triangles} = stl_data
-	
-					/*triangles.forEach(({norm, p1, p2, p3}) => {
-						console.log(norm)
-						console.log(p1)
-						console.log(p2)
-						console.log(p3)
-						console.log('================')
-					})*/
-	
+					const {triangles, nTriangles} = stl_data
+					console.log(`model geometry data ready, ${nTriangles} facets total;\n`)
 					geometryConsumer(triangles) 
-				})
-			)
+			})
 			.catch( err => {
 				console.log('fail:')
 				console.log(err)
