@@ -3,12 +3,14 @@ const Vector = require('./vectorOps.js')
 
 class AeroModel {
     constructor() {
-        this.area = 0
-        this.nFacets = 0
-        this.facets = []
+        this.area = 0       // Характерная площадь
+        this.nFacets = 0    // количество элементарных фасеток
+        this.facets = []    // Массив фасеток, составляющих геометрию объекта
+        this.sWetted = 0    // Площадь смачиваемой поверхности
+        this.size = 0       // Длина
     }
     /**
-     * @description
+     * @description получить исходные данные, на их основе определить смачиваемую поверхность конуса
      * @param {Array.<Object>} facets массив точек, формирующих контур ЛА
      * @param {Number} area характерная площадь ЛА
      * @return {void}
@@ -17,6 +19,19 @@ class AeroModel {
         this.area = area
         this.facets = facets
         this.nFacets = this.facets.length
+
+        let xMin = 0
+        let xMax = 0
+
+        for(let i = 0; i < this.nFacets; i++) {
+            const {p1, p2, p3} = this.facets[i]
+            this.sWetted += Vector.heronArea(p1, p2, p3)
+
+            xMin = Math.min(xMin, p1[0], p2[0], p3[0])
+            xMax = Math.max(xMax, p1[0], p2[0], p3[0])
+        }
+
+        this.size = xMax - xMin
     }
     /**
      * @description получить параметры обтекания элементарной объекта при одном значении числа M, угла атаки и скольжения
@@ -93,18 +108,23 @@ class AeroModel {
     calcTable(MV, AV, betha, flow) {
         const nMach = MV.length
         const nAlpha = AV.length
-        const {P, k} = flow
+        const {P, k, aSn} = flow
         const result = new Array(nMach)
-
+        
         for(let i = 0; i < nMach; i++) {
             result[i] = []
             const Mach = MV[i]
+            const reynolds = Mach * aSn * this.size / flow.viscosity
+            const CxF = 0.074 * Math.pow(reynolds, -0.2) * this.sWetted / this.area
             const Qpress = 0.5 * k * P * Mach * Mach
             const {NuMax, ThMax} = GasDynamics.getThMax(Mach, k)
             
             for(let j = 0; j < nAlpha; j++) {
                 const alpha = AV[j]
-                const adxMachAlpha = this.calcSinglePoint(Qpress, ThMax, NuMax, Mach, flow, alpha, betha)
+                const adxMachAlpha = {
+                    ...this.calcSinglePoint(Qpress, ThMax, NuMax, Mach, flow, alpha, betha),
+                    CxF
+                }
                 result[i].push(adxMachAlpha)
             }
         }

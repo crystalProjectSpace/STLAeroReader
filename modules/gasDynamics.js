@@ -58,6 +58,8 @@ const GasDynamics = {
 
 
 	DTH: 0.0004363001745,
+
+	SHOCK_LIMIT: 27.5,
 	/**
 	* @decription Решение уравнения косого скачка уплотнения методом Ньютона
 	* @param {Number} M  число M невозмущенного потока
@@ -79,6 +81,13 @@ const GasDynamics = {
 		}
 		
 		return ThNext
+	},
+	/**
+	 * @description Коэффициент местного избыточного давления на основе метода Ньютона
+	*/
+	newtonKinematic: function(M, k, Nu) {
+		const M_STH = M * Math.sin(Nu)
+		return k * M_STH * M_STH
 	},
 	/**
 	* @decription Найти угол отсоединенного скачка
@@ -114,8 +123,12 @@ const GasDynamics = {
 	getDeltaPressure: function(ThMax, NuMax, Nu, M, k) {
 		if(Math.abs(Nu) > 0.005) {
 			if( Nu > 0) {
-				const Th = Nu > NuMax ? GasDynamics.overCritTh(ThMax, Nu, NuMax) : GasDynamics.testNewton(M, k, Nu)
-				return GasDynamics.shockTransform(M, k, Th)
+				if( M < GasDynamics.SHOCK_LIMIT) {
+					const Th = Nu > NuMax ? GasDynamics.overCritTh(ThMax, Nu, NuMax) : GasDynamics.testNewton(M, k, Nu)
+					return GasDynamics.shockTransform(M, k, Th)
+				} else {
+					return GasDynamics.newtonKinematic(M, k, Nu)
+				}
 			} else {
 				return GasDynamics.rareify(M, -Nu, k)
 			}
