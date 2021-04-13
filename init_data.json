@@ -1,5 +1,5 @@
 {
-    "active_var": 0,
+    "active_var": 1,
     "vehicles": [
         {
             "flight_parameters": {
@@ -10,6 +10,17 @@
             "vehicle_data": {
                 "area": 3.14159,
                 "vehicle_name": "BLUNT_TEST"
+            }
+        },
+        {
+            "flight_parameters": {
+                "H": 85000,
+                "MV": [27.5],
+                "AV": [-1.745, -1.396, -1.047, -0.698, -0.349, 0, 0.349, 0.698, 1.047, 1.396, 1.745]
+            },
+            "vehicle_data": {
+                "area": 11.94,
+                "vehicle_name": "apollo"
             }
         }
     ]
