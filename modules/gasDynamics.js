@@ -46,7 +46,7 @@ const GasDynamics = {
 	* @return {Object}
 	*/
 	rareify: function(M, Betha, k) {
-		if(Betha < M / 57.3) {
+		if(1/M > Betha) {
 			const M_ = 1/(1/M - 0.5 * (k - 1) * Betha) 
 			const dT2 = (1/(k - 1) + 0.5 * M * M )/(1/(k - 1) + 0.5 * M_ * M_ )
 			const dP2 = dT2 ** (k/(k - 1))
@@ -87,7 +87,7 @@ const GasDynamics = {
 	*/
 	newtonKinematic: function(M, k, Nu) {
 		const M_STH = M * Math.sin(Nu)
-		return k * M_STH * M_STH
+		return k * M_STH * M_STH + 1
 	},
 	/**
 	* @decription Найти угол отсоединенного скачка

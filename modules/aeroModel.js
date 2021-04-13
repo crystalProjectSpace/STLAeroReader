@@ -8,6 +8,8 @@ class AeroModel {
         this.facets = []    // Массив фасеток, составляющих геометрию объекта
         this.sWetted = 0    // Площадь смачиваемой поверхности
         this.size = 0       // Длина
+        this.width = 0
+        this.height = 0
     }
     /**
      * @description получить исходные данные, на их основе определить смачиваемую поверхность конуса
@@ -22,6 +24,10 @@ class AeroModel {
 
         let xMin = 0
         let xMax = 0
+        let yMin = 0
+        let yMax = 0
+        let zMin = 0
+        let zMax = 0
 
         for(let i = 0; i < this.nFacets; i++) {
             const {p1, p2, p3} = this.facets[i]
@@ -29,9 +35,15 @@ class AeroModel {
 
             xMin = Math.min(xMin, p1[0], p2[0], p3[0])
             xMax = Math.max(xMax, p1[0], p2[0], p3[0])
+            yMin = Math.min(yMin, p1[1], p2[1], p3[1])
+            yMax = Math.max(yMax, p1[1], p2[1], p3[1])
+            zMin = Math.min(zMin, p1[2], p2[2], p3[2])
+            zMax = Math.max(zMax, p1[2], p2[2], p3[2])
         }
 
         this.size = xMax - xMin
+        this.height = yMax - yMin
+        this.width = zMax - zMin
     }
     /**
      * @description получить параметры обтекания элементарной объекта при одном значении числа M, угла атаки и скольжения
@@ -55,12 +67,13 @@ class AeroModel {
         const STB = Math.sin(betha)
 
         const Velocity = [
-            -CTA * CTB,
+            CTA * CTB,
             -STA,
-            -CTA * STB
+            CTA * STB
         ]
 
         const adxSumm = [0, 0, 0]
+        const torqueSumm = [0, 0, 0]
         const PI_05 = Math.PI * 0.5
         
         for(let i = 0; i < this.nFacets; i++) {
@@ -69,15 +82,23 @@ class AeroModel {
             const localNu = Math.abs(localNu0) > PI_05 ?
                 -Math.abs(localNu0) + PI_05 :
                 PI_05 - Math.abs(localNu0)
-            
+
             const localArea = Vector.heronArea(p1, p2, p3)
             const localCenter = Vector.triCenter(p1, p2, p3)
             const deltaP = GasDynamics.getDeltaPressure(ThMax, NuMax, localNu, Mach, k)
             const localForce = deltaP * P * localArea
             
-            adxSumm[0] -= localForce * norm[0]
-            adxSumm[1] -= localForce * norm[1]
-            adxSumm[2] -= localForce * norm[2]
+            const dX = -localForce * norm[0]
+            const dY = -localForce * norm[1]
+            const dZ = -localForce * norm[2]
+            
+            adxSumm[0] += dX
+            adxSumm[1] += dY
+            adxSumm[2] += dZ
+
+            torqueSumm[0] += (dY * localCenter[2] + dZ * localCenter[1])
+            torqueSumm[1] += (dX * localCenter[2] + dZ * localCenter[0])
+            torqueSumm[2] += (dX * localCenter[1] + dY * localCenter[0])
         }
 
         return {
@@ -86,7 +107,10 @@ class AeroModel {
             Z_force: adxSumm[2], // боковая сила
             Cx: adxSumm[0] / QS, // коэф.сопротивления
             Cy: adxSumm[1] / QS, // коэф.подъемной силы
-            Cz: adxSumm[2] / QS // коэф. боковой силы
+            Cz: adxSumm[2] / QS, // коэф. боковой силы
+            mX: torqueSumm[0] / (QS * this.size),
+            mY: torqueSumm[1] / (QS * this.size),
+            mZ: torqueSumm[2] / (QS * this.size)
         }        
     }
     /**

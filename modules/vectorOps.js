@@ -98,7 +98,7 @@ const Vector = {
     angleBetween: function(U, V) {
         const cross = Vector.crossProduct(U, V)
         const sign = Math.sign(Vector.dotProduct([0, 1, 1], cross))
-        return sign * Math.acos(Vector.dotProduct(U, V)/ (Vector.absV(U) * Vector.absV(V)))//Math.atan(Vector.absV(cross)/Vector.dotProduct(U, V))
+        return sign * Math.acos(Vector.dotProduct(U, V)/ (Vector.absV(U) * Vector.absV(V)))
     },
     /**
     * @description спроецировать точку на плоскость

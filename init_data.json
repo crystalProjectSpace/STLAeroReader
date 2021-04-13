@@ -1,12 +1,16 @@
 {
-    "flight_parameters": {
-        "area": 7.065,
-        "H": 40000,
-        "MV": [30],
-        "AV": [0, 0.034904, 0.08726, 0.17452, 0.34904, 0.52356, 0.78534, 1.04712]
-    },
-    "vehicle_data": {
-        "area": 7.065,
-        "vehicle_name": "BICONIC_mod_2"
-    }    
+    "active_var": 0,
+    "vehicles": [
+        {
+            "flight_parameters": {
+                "H": 55000,
+                "MV": [17.5],
+                "AV": [ 0, 0.349, 0.698, 1.047, 1.396, 1.745, 2.094, 2.443, 2.792, 3.141]
+            },
+            "vehicle_data": {
+                "area": 3.14159,
+                "vehicle_name": "BLUNT_TEST"
+            }
+        }
+    ]
 }
