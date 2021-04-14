@@ -126,15 +126,19 @@ class AeroModel {
         const nAlpha = AV.length
         const {P, k, aSn} = flow
         const result = new Array(nMach)
+        const adxParameters = []
         
         for(let i = 0; i < nMach; i++) {
             result[i] = []
             const Mach = MV[i]
             const reynolds = Mach * aSn * this.size / flow.viscosity
+            const knudsen = Mach * Math.sqrt(0.5 * k * Math.PI) / reynolds
             const CxF = 0.074 * Math.pow(reynolds, -0.2) * this.sWetted / this.area
             const Qpress = 0.5 * k * P * Mach * Mach
             const {NuMax, ThMax} = GasDynamics.getThMax(Mach, k)
             
+            adxParameters.push({reynolds, knudsen})
+
             for(let j = 0; j < nAlpha; j++) {
                 const alpha = AV[j]
                 const adxMachAlpha = {
@@ -145,7 +149,7 @@ class AeroModel {
             }
         }
 
-        return result
+        return { adxTable: result, adxParameters }
     }
 }
 
