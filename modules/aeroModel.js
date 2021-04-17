@@ -1,6 +1,5 @@
 const GasDynamics = require('./gasDynamics.js')
 const Vector = require('./vectorOps.js')
-
 class AeroModel {
     constructor() {
         this.area = 0       // Характерная площадь
@@ -56,8 +55,8 @@ class AeroModel {
      * @param {Number} betha угол скольжения
      * @return {Object} параметры обтекания
      */
-    calcSinglePoint(Qpress, ThMax, NuMax, Mach, flow, alpha, betha) {
-        const {P, k} = flow        
+    calcSinglePoint(Qpress, ThMax, NuMax, Mach, flow, alpha, betha, Kn = 0) {
+        const {P, k, aSn, vChaotic} = flow        
 
         const QS = Qpress * this.area
         
@@ -85,7 +84,17 @@ class AeroModel {
 
             const localArea = Vector.heronArea(p1, p2, p3)
             const localCenter = Vector.triCenter(p1, p2, p3)
-            const deltaP = GasDynamics.getDeltaPressure(ThMax, NuMax, localNu, Mach, k)
+
+            let deltaP = 1
+            if(Kn < 1E-2) {
+                deltaP = GasDynamics.getDeltaPressure(ThMax, NuMax, localNu, Mach, k)
+            } else if(Kn >= 1E-2 && Kn < 10) {
+                const k_rare = (2.3026 - Math.log(Kn)) / 6.908
+                deltaP = k_rare * GasDynamics.getDeltaPressure(ThMax, NuMax, localNu, Mach, k) + (1 - k_rare) * GasDynamics.getSlipFlow(localNu, Mach, k, aSn, vChaotic)
+            } else if (Kn >= 10){
+                deltaP = GasDynamics.getSlipFlow(localNu, Mach, k, aSn, vChaotic)
+            }
+
             const localForce = deltaP * P * localArea
             
             const dX = -localForce * norm[0]
@@ -142,7 +151,7 @@ class AeroModel {
             for(let j = 0; j < nAlpha; j++) {
                 const alpha = AV[j]
                 const adxMachAlpha = {
-                    ...this.calcSinglePoint(Qpress, ThMax, NuMax, Mach, flow, alpha, betha),
+                    ...this.calcSinglePoint(Qpress, ThMax, NuMax, Mach, flow, alpha, betha, knudsen),
                     CxF
                 }
                 result[i].push(adxMachAlpha)

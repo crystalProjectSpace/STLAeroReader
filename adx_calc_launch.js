@@ -7,13 +7,13 @@ const {readSTL} = require('./modules/stlReader.js')
 const AeroModel = require('./modules/aeroModel.js')
 const AtmoModel = require('./modules/atmoModel.js')
 
-const {atmosphere} = require('./atmo/earth_atmo.json')
+const atmosphereData = require('./atmo/earth_atmo.json')
 const {active_var, vehicles} = require("./init_data.json")
 
 const {vehicle_data, flight_parameters} = vehicles[active_var]
 
 const activeAtmo = new AtmoModel()
-activeAtmo.initAtmo(atmosphere)
+activeAtmo.initAtmo(atmosphereData)
 
 const prepareADXResult = function(adxTab, adxPrms, MV, AV, vehicle_name, area, rad) {
     let Cxa_str = ''

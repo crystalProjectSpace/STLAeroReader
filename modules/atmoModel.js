@@ -4,9 +4,13 @@
 const AtmoModel = function() {
 	this.atmoData = null
 	this.index = 0
+	this.k = 0
+	this.R = 0
 	
-	this.initAtmo = atmosphere => {
+	this.initAtmo = ({atmosphere, k, R}) => {
 		this.atmoData = atmosphere
+		this.k = k
+		this.R = R
 	}
 	
 	/**
@@ -49,12 +53,13 @@ const AtmoModel = function() {
 			T: atmoH_0[1] + (atmoH_1[1] - atmoH_0[1]) * hRel,
 			aSn: atmoH_0[4] + (atmoH_1[4] - atmoH_0[4]) * hRel,
 			Ro: atmoH_0[3] + (atmoH_1[3] - atmoH_0[3]) * hRel,
-			k: 1.4
+			k: this.k
 		}
 
 		const viscosity = this.viscositySutherland(result.T, result.Ro)
+		const vChaotic = Math.sqrt(2 * result.T * this.R)
 
-		return {...result, viscosity}
+		return {...result, viscosity, vChaotic}
 	}
 }
 

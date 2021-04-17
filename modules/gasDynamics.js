@@ -1,5 +1,22 @@
 'use strict'
 
+/**
+ * @description Аппроксимация erf, нужна для расчета разреженного потока
+ * @param {Number} x 
+ * @returns 
+ */
+ const erf = function(x) {
+    const sign = Math.sign(x)
+    const _x = Math.abs(x)
+    const t = 1 / (1 + 0.47047 * _x)
+    const x_2 = _x * _x
+    const t_2 = t * t
+    const t_3 = t_2 * t
+    const C1 = Math.pow(2.71828, -x_2)
+
+    return sign * (1 - (0.3480242 * t - 0.0958798 * t_2 + 0.7478556 * t_3) * C1)
+}
+
 const GasDynamics = {
 	/**
 	* @decription Разность между углом отклонения потока и углом скачка уплотнения
@@ -113,6 +130,31 @@ const GasDynamics = {
 		const dP = (2 * k * M2 * STH * STH - k + 1) / (k + 1)
 		return dP
 	},
+	/**
+	 * @description Заготовка для расчета потока со скольжением (Kn >> 1E-3)
+	 */
+	getSlipFlow: function(Nu, M, k, aSn, vChaotic) {
+		if(Math.abs(Nu) > 0.001) {
+			const M2 = M * M
+			const V0 = M * aSn
+			const vR = V0
+			const SNU = Math.sin(Nu)
+			const betha = V0 * SNU / vChaotic
+			const _PI = Math.sqrt(Math.PI)
+
+			const K_V = vR * vChaotic / (V0 * V0)
+			const K_ERF = 1 + erf(betha)
+			const K_XP = Math.pow(2.71828, - (betha * betha))
+
+			const K1 = SNU * SNU / (betha * _PI)
+			const K2 = Math.sign(Nu) * K_XP
+			const K3 = _PI * (betha + 0.5 / betha) * K_ERF
+	
+			return 0.5 * k * M2 * (K1 * (K2 + K3) + 0.5 * K_V * (K_XP + _PI * betha * K_ERF))
+		} else {
+			return 1
+		}
+	}, 
 	/**
 	* @decription Для набора углов местного клина получить последовательность коэффициентов давления
 	* @param {Array.<Number>} M  число M невозмущенного потока
